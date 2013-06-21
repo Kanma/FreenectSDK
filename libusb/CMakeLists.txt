@@ -58,4 +58,4 @@ if (APPLE)
 endif()
 
 # Exportations
-xmake_export_include_paths(LIBUSB "${LIBUSB_SOURCE_DIR}/..")
+xmake_export_include_paths(LIBUSB "${LIBUSB_SOURCE_DIR}/.." "${LIBUSB_SOURCE_DIR}")
