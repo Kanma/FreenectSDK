@@ -25,6 +25,7 @@ mkdir -p OpenNI2/include/Linux-x86
 mkdir -p OpenNI2/include/Driver
 cp $1/Include/Oni*.h OpenNI2/include/.
 cp $1/Include/OpenNI.h OpenNI2/include/.
+cp $1/Include/PS1080.h OpenNI2/include/.
 cp $1/Include/MacOSX/*.h OpenNI2/include/MacOSX/.
 cp $1/Include/Linux-x86/*.h OpenNI2/include/Linux-x86/.
 cp $1/Include/Driver/*.h OpenNI2/include/Driver/.
