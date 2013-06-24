@@ -38,8 +38,35 @@ include("${XMAKE_DEPENDENCIES_DIR}/XMake/XMake.cmake")
 
 
 ##########################################################################################
+# Check that OpenNI2 and NiTE2 are imported
+
+if (NOT EXISTS "${FREENECT_SDK_SOURCE_DIR}/OpenNI2/bin/libOpenNI2.dylib")
+    message(FATAL_ERROR
+"Missing dependency: OpenNI2
+The Freenect SDK requires OpenNI2 as a dependency.
+
+You have to download it from www.openni.org, decompress it and import it using the
+following command:
+   ./tools/import_openni2.sh /path/to/OpenNI2"
+)
+endif()
+
+if (NOT EXISTS "${FREENECT_SDK_SOURCE_DIR}/NiTE2/bin/libNiTE2.dylib")
+    message(FATAL_ERROR
+"Missing dependency: OpenNI2
+The Freenect SDK requires NiTE2 as a dependency.
+
+You have to download it from www.openni.org, decompress it and import it using the
+following command:
+   ./tools/import_nite2.sh /path/to/NiTE2"
+)
+endif()
+
+
+##########################################################################################
 # Process the subdirectories
 
 add_subdirectory(libusb)
 add_subdirectory(libfreenect)
 add_subdirectory(OpenNI2)
+add_subdirectory(NiTE2)

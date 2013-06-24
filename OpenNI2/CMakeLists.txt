@@ -35,6 +35,12 @@ set_target_properties(MWClosestPoint PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAK
                                                 COMPILE_DEFINITIONS "_CLOSEST_POINT"
 )
 
+if (APPLE)
+    xmake_add_to_property(DEMO_OPENNI2_LIBMWCLOSESTPOINT LINK_FLAGS "-Wl,-rpath,@loader_path/../..")
+else()
+    xmake_add_to_list_property(DEMO_OPENNI2_LIBMWCLOSESTPOINT INSTALL_RPATH "../..")
+endif()
+
 
 #### examples/ClosestPointViewer
 
@@ -56,8 +62,10 @@ set_target_properties(ClosestPointViewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${
 
 if (APPLE)
     target_link_libraries(ClosestPointViewer "-framework OpenGL -framework GLUT")
+    xmake_add_to_property(DEMO_OPENNI2_CLOSEST_POINT_VIEWER LINK_FLAGS "-Wl,-rpath,@loader_path/../..")
 else()
     target_link_libraries(ClosestPointViewer "-lgl -lglut")
+    xmake_add_to_list_property(DEMO_OPENNI2_CLOSEST_POINT_VIEWER INSTALL_RPATH "../..")
 endif()
 
 
@@ -73,6 +81,12 @@ xmake_project_link(DEMO_OPENNI2_EVENTBASEDREAD OPENNI2)
 
 set_target_properties(EventBasedRead PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Demos/OpenNI2")
 
+if (APPLE)
+    xmake_add_to_property(DEMO_OPENNI2_EVENTBASEDREAD LINK_FLAGS "-Wl,-rpath,@loader_path/../..")
+else()
+    xmake_add_to_list_property(DEMO_OPENNI2_EVENTBASEDREAD INSTALL_RPATH "../..")
+endif()
+
 
 #### examples/SimpleRead
 
@@ -85,6 +99,12 @@ xmake_create_executable(DEMO_OPENNI2_SIMPLE_READ SimpleRead ${SRCS})
 xmake_project_link(DEMO_OPENNI2_SIMPLE_READ OPENNI2)
 
 set_target_properties(SimpleRead PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Demos/OpenNI2")
+
+if (APPLE)
+    xmake_add_to_property(DEMO_OPENNI2_SIMPLE_READ LINK_FLAGS "-Wl,-rpath,@loader_path/../..")
+else()
+    xmake_add_to_list_property(DEMO_OPENNI2_SIMPLE_READ INSTALL_RPATH "../..")
+endif()
 
 
 #### examples/SimpleViewer
@@ -104,6 +124,8 @@ set_target_properties(SimpleViewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_
 
 if (APPLE)
     target_link_libraries(SimpleViewer "-framework OpenGL -framework GLUT")
+    xmake_add_to_property(DEMO_OPENNI2_SIMPLE_VIEWER LINK_FLAGS "-Wl,-rpath,@loader_path/../..")
 else()
     target_link_libraries(SimpleViewer "-lgl -lglut")
+    xmake_add_to_list_property(DEMO_OPENNI2_SIMPLE_VIEWER INSTALL_RPATH "../..")
 endif()
