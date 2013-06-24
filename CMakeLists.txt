@@ -42,3 +42,4 @@ include("${XMAKE_DEPENDENCIES_DIR}/XMake/XMake.cmake")
 
 add_subdirectory(libusb)
 add_subdirectory(libfreenect)
+add_subdirectory(OpenNI2)
