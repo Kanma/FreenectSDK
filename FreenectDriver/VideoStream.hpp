@@ -3,6 +3,7 @@
 #include "libfreenect.hpp"
 #include "Driver/OniDriverAPI.h"
 #include "PS1080.h"
+#include "OniVersion.h"
 
 
 #define SIZE(array) sizeof array / sizeof 0[array]
@@ -47,6 +48,7 @@ namespace FreenectDriver {
   protected:
     static const OniSensorType sensor_type;
     Freenect::FreenectDevice* device;
+    int32_t dataSize;
     bool running; // acquireFrame() does something iff true
     OniVideoMode video_mode;
     bool mirroring;
@@ -55,23 +57,66 @@ namespace FreenectDriver {
     VideoStream(Freenect::FreenectDevice* device) :
       device(device),
       frame_id(1),
+      dataSize(0),
       mirroring(false) { }
     //~VideoStream() { stop();  }
-  
+
+
+#if (ONI_VERSION_MAJOR == 2) && (ONI_VERSION_MINOR == 1)
+    void addRefToFrame(OniDriverFrame* pFrame)
+    {
+        *((size_t*) pFrame->pDriverCookie) = *((size_t*) pFrame->pDriverCookie) + 1;
+    }
+
+    void releaseFrame(OniDriverFrame* pFrame)
+    {
+        *((size_t*) pFrame->pDriverCookie) = *((size_t*) pFrame->pDriverCookie) - 1;
+        if (0 == *((size_t*) pFrame->pDriverCookie))
+        {
+            free(pFrame->frame.data);
+            free(pFrame->pDriverCookie);
+            free(pFrame);
+        }
+    }
+#endif
+
+
     void buildFrame(void* data, uint32_t timestamp) {
       if (!running)
         return;     
 
+#if (ONI_VERSION_MAJOR == 2) && (ONI_VERSION_MINOR == 1)
+      OniDriverFrame* pFrame = (OniDriverFrame*) malloc(sizeof(OniDriverFrame));
+      pFrame->frame.data = malloc(dataSize);
+      pFrame->pDriverCookie = malloc(sizeof(size_t));
+      *((size_t*) pFrame->pDriverCookie) = 1;
+
+      pFrame->frame.dataSize = dataSize;
+      pFrame->frame.frameIndex = frame_id++;
+      pFrame->frame.timestamp = timestamp;
+      pFrame->frame.videoMode = video_mode;
+      pFrame->frame.width = video_mode.resolutionX;
+      pFrame->frame.height = video_mode.resolutionY;
+
+      populateFrame(data, &pFrame->frame);
+      raiseNewFrame(pFrame);
+      releaseFrame(pFrame);
+
+#elif (ONI_VERSION_MAJOR == 2) && (ONI_VERSION_MINOR == 2)
       OniFrame* frame = getServices().acquireFrame();
       frame->frameIndex = frame_id++;
       frame->timestamp = timestamp;
       frame->videoMode = video_mode;
       frame->width = video_mode.resolutionX;
       frame->height = video_mode.resolutionY;
-      
+
       populateFrame(data, frame);
       raiseNewFrame(frame);
       getServices().releaseFrame(frame);
+#else
+    #error "Unsupported OpenNI version"
+#endif
+
     }
   
     // from StreamBase

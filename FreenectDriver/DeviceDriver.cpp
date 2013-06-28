@@ -207,7 +207,13 @@ namespace FreenectDriver {
       return ONI_STATUS_OK;
     }
     
+#if (ONI_VERSION_MAJOR == 2) && (ONI_VERSION_MINOR == 2)
     oni::driver::DeviceBase* deviceOpen(const char* uri, const char* mode = NULL) {
+#elif (ONI_VERSION_MAJOR == 2) && (ONI_VERSION_MINOR == 1)
+    oni::driver::DeviceBase* deviceOpen(const char* uri) {
+#else
+    #error "Unsupported OpenNI version"
+#endif
       for (std::map<OniDeviceInfo, oni::driver::DeviceBase*>::iterator iter = devices.begin(); iter != devices.end(); ++iter) {
         if (strcmp(iter->first.uri, uri) == 0) { // found
           if (iter->second) // already open
