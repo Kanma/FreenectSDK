@@ -44,6 +44,7 @@ OniStatus DepthStream::setVideoMode(OniVideoMode requested_mode) {
 	}
 	video_mode = requested_mode;
 	dataSize = device->getDepthBufferSize();
+    framerate = device->getDepthFramerate();
 	return ONI_STATUS_OK;
 }
 

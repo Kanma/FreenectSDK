@@ -40,6 +40,7 @@ OniStatus ColorStream::setVideoMode(OniVideoMode requested_mode) {
 	}
 	video_mode = requested_mode;
 	dataSize = device->getVideoBufferSize();
+    framerate = device->getVideoFramerate();
 	return ONI_STATUS_OK;
 }
 

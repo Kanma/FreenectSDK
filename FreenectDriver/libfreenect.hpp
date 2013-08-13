@@ -31,7 +31,7 @@
 #include <sstream>
 #include <map>
 #include <pthread.h>
-#include <libusb-1.0/libusb.h>
+#include <libusb/libusb.h>
 
 namespace Freenect {
 	class Noncopyable {
@@ -68,8 +68,17 @@ namespace Freenect {
 		{
 			if(freenect_open_device(_ctx, &m_dev, _index) < 0) throw std::runtime_error("Cannot open Kinect");
 			freenect_set_user(m_dev, this);
-			freenect_set_video_mode(m_dev, freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB));
-			freenect_set_depth_mode(m_dev, freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_11BIT));
+
+			freenect_frame_mode mode = freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB);
+			freenect_set_video_mode(m_dev, mode);
+			m_video_format = FREENECT_VIDEO_RGB;
+			m_video_framerate = mode.framerate;
+
+			mode = freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_11BIT);
+			freenect_set_depth_mode(m_dev, mode);
+			m_depth_format = FREENECT_DEPTH_11BIT;
+			m_depth_framerate = mode.framerate;
+
 			freenect_set_depth_callback(m_dev, freenect_depth_callback);
 			freenect_set_video_callback(m_dev, freenect_video_callback);
 		}
@@ -109,6 +118,7 @@ namespace Freenect {
 				freenect_start_video(m_dev);
 				m_video_format = requested_format;
 				m_video_resolution = requested_resolution;
+                m_video_framerate = mode.framerate;
 			}
 		}
 		freenect_video_format getVideoFormat() {
@@ -116,6 +126,9 @@ namespace Freenect {
 		}
 		freenect_resolution getVideoResolution() {
 			return m_video_resolution;
+		}
+		unsigned int getVideoFramerate() {
+			return m_video_framerate;
 		}
 		int getVideoBufferSize(){
 			switch(m_video_format) {
@@ -140,6 +153,7 @@ namespace Freenect {
 				freenect_start_depth(m_dev);
 				m_depth_format = requested_format;
 				m_depth_resolution = requested_resolution;
+                m_depth_framerate = mode.framerate;
 			}
 		}
 		freenect_depth_format getDepthFormat() {
@@ -147,6 +161,9 @@ namespace Freenect {
 		}
 		freenect_resolution getDepthResolution() {
 			return m_depth_resolution;
+		}
+		unsigned int getDepthFramerate() {
+			return m_depth_framerate;
 		}
 		int getDepthBufferSize() {
 			return freenect_get_current_depth_mode(m_dev).bytes;
@@ -161,6 +178,8 @@ namespace Freenect {
 		freenect_depth_format m_depth_format;
 		freenect_resolution m_video_resolution;
 		freenect_resolution m_depth_resolution;
+        unsigned int m_video_framerate;
+        unsigned int m_depth_framerate;
 		static void freenect_depth_callback(freenect_device *dev, void *depth, uint32_t timestamp) {
 			FreenectDevice* device = static_cast<FreenectDevice*>(freenect_get_user(dev));
 			device->DepthCallback(depth, timestamp);

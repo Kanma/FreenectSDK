@@ -52,13 +52,15 @@ namespace FreenectDriver {
     bool running; // acquireFrame() does something iff true
     OniVideoMode video_mode;
     bool mirroring;
+    unsigned int framerate;
   
   public:
     VideoStream(Freenect::FreenectDevice* device) :
       device(device),
       frame_id(1),
       dataSize(0),
-      mirroring(false) { }
+      mirroring(false),
+      framerate(30) { }
     //~VideoStream() { stop();  }
 
 
@@ -93,19 +95,18 @@ namespace FreenectDriver {
 
       pFrame->frame.dataSize = dataSize;
       pFrame->frame.frameIndex = frame_id++;
-      pFrame->frame.timestamp = timestamp;
+      pFrame->frame.timestamp = frame_id * 1000000 / framerate;
       pFrame->frame.videoMode = video_mode;
       pFrame->frame.width = video_mode.resolutionX;
       pFrame->frame.height = video_mode.resolutionY;
 
       populateFrame(data, &pFrame->frame);
       raiseNewFrame(pFrame);
-      releaseFrame(pFrame);
 
 #elif (ONI_VERSION_MAJOR == 2) && (ONI_VERSION_MINOR == 2)
       OniFrame* frame = getServices().acquireFrame();
       frame->frameIndex = frame_id++;
-      frame->timestamp = timestamp;
+      frame->timestamp = frame_id * 1000000 / framerate;
       frame->videoMode = video_mode;
       frame->width = video_mode.resolutionX;
       frame->height = video_mode.resolutionY;
