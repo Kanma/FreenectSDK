@@ -1,0 +1,77 @@
+********************************************************************************
+*                                                                              *
+*                                 FreenectSDK                                  *
+*                       http://github.com/Kanma/FreenectSDK                    *
+*                                                                              *
+********************************************************************************
+
+
+---------------------------------------
+- Summary
+---------------------------------------
+
+A self-contained (OS X) Kinect development environment based on OpenNI2, NITE2 and
+libfreenect.
+
+It contains:
+  - A CMake-based build system
+  - A copy of OpenNI2-FreenectDriver, a Kinect driver for OpenNI
+  - A copy of libfreenect, an open-source library for accessing the Microsoft Kinect USB
+    camera
+  - A copy of libusb 1.0.8, including an OS X patch made by libfreenect developers
+
+Due to restrictions in their licensing, OpenNI2 and NiTE2 can't be distributed with
+FreenectSDK but must be downloaded directly from www.openni.org.
+
+
+---------------------------------------
+- Dependencies
+---------------------------------------
+
+You'll need to download OpenNI2 (2.1 or 2.2) and the corresponding NiTE2 version (2.0 or
+2.2), decompress them and execute the following commands to copy and configure them to
+work with FreenectSDK:
+
+    somewhere$ cd <path/to/FreenectSDK>
+    FreenectSDK$ ./tools/import_openni2.sh <path/to/OpenNI2>
+    FreenectSDK$ ./tools/import_nite2.sh <path/to/NiTE2>
+
+FreenectSDK requires XMake to compile. It is provided as a GIT submodule of this
+repository.
+
+To download it, do:
+
+    somewhere$ cd <path/to/FreenectSDK>
+    FreenectSDK$ git submodule init
+    FreenectSDK$ git submodule update
+
+
+---------------------------------------
+- Compilation
+---------------------------------------
+
+(Note: you'll need to install CMake to compile FreenectSDK)
+
+To compile FreenectSDK, do:
+
+    somewhere$ mkdir build
+    somewhere$ cd build
+    build$ cmake <path/to/FreenectSDK>
+    build$ make
+
+The libraries and executables will be put in build/bin/
+
+
+---------------------------------------
+- License
+---------------------------------------
+
+Being only a simple set of CMake files, FreenectSDK itself isn't released under a specific
+license, feel free to do anything you want with them.
+
+The libraries used by FreenectSDK however are licensed like this:
+
+  - libusb: LGPL 2.1 (see libusb/COPYING)
+  - libfreenect: dual licensing Apache 2.0/GPLv2 (see libfreenect/APACHE20 and
+                 libfreenect/GPL2)
+  - OpenNI2-FreenectDriver: Apache 2.0 (see FreenectDriver/LICENSE)
