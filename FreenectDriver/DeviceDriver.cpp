@@ -20,6 +20,7 @@
 #include "libfreenect.hpp"
 #include "DepthStream.hpp"
 #include "ColorStream.hpp"
+#include "Properties.h"
 
 
 static bool operator<(const OniDeviceInfo& left, const OniDeviceInfo& right) { return (strcmp(left.uri, right.uri) < 0); } // for std::map
@@ -96,25 +97,20 @@ namespace FreenectDriver {
     }
     
     // todo: fill out properties
-    OniBool isPropertySupported(int propertyId) { return (getProperty(propertyId, NULL, NULL) != ONI_STATUS_NOT_SUPPORTED); }
+    OniBool isPropertySupported(int propertyId) {
+        switch (propertyId) {
+            case ONI_DEVICE_PROPERTY_IMAGE_REGISTRATION:
+            case KINECT_PROPERTY_LED_STATUS:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     OniStatus getProperty(int propertyId, void* data, int* pDataSize) {
       switch (propertyId) {
         default:
-        case ONI_DEVICE_PROPERTY_FIRMWARE_VERSION:        // string
-        case ONI_DEVICE_PROPERTY_DRIVER_VERSION:          // OniVersion
-        case ONI_DEVICE_PROPERTY_HARDWARE_VERSION:        // int
-        case ONI_DEVICE_PROPERTY_SERIAL_NUMBER:           // string
-        case ONI_DEVICE_PROPERTY_ERROR_STATE:             // ?
-        // files
-        case ONI_DEVICE_PROPERTY_PLAYBACK_SPEED:          // float
-        case ONI_DEVICE_PROPERTY_PLAYBACK_REPEAT_ENABLED: // OniBool
-        // xn
-        case XN_MODULE_PROPERTY_USB_INTERFACE:            // XnSensorUsbInterface
-        case XN_MODULE_PROPERTY_MIRROR:                   // bool
-        case XN_MODULE_PROPERTY_RESET_SENSOR_ON_STARTUP:  // unsigned long long
-        case XN_MODULE_PROPERTY_LEAN_INIT:                // unsigned long long
-        case XN_MODULE_PROPERTY_SERIAL_NUMBER:            // unsigned long long
-        case XN_MODULE_PROPERTY_VERSION:                  // XnVersions
           return ONI_STATUS_NOT_SUPPORTED;
           
         case ONI_DEVICE_PROPERTY_IMAGE_REGISTRATION:      // OniImageRegistrationMode
@@ -126,31 +122,10 @@ namespace FreenectDriver {
           return ONI_STATUS_OK;
       }
     }
+
     OniStatus setProperty(int propertyId, const void* data, int dataSize) {
       switch (propertyId) {
         default:
-        case ONI_DEVICE_PROPERTY_FIRMWARE_VERSION:        // By implementation
-        case ONI_DEVICE_PROPERTY_DRIVER_VERSION:          // OniVersion
-        case ONI_DEVICE_PROPERTY_HARDWARE_VERSION:        // int
-        case ONI_DEVICE_PROPERTY_SERIAL_NUMBER:           // string
-        case ONI_DEVICE_PROPERTY_ERROR_STATE:             // ?
-        // files
-        case ONI_DEVICE_PROPERTY_PLAYBACK_SPEED:          // float
-        case ONI_DEVICE_PROPERTY_PLAYBACK_REPEAT_ENABLED: // OniBool
-        // xn
-        case XN_MODULE_PROPERTY_USB_INTERFACE:            // XnSensorUsbInterface
-        case XN_MODULE_PROPERTY_MIRROR:                   // bool
-        case XN_MODULE_PROPERTY_RESET_SENSOR_ON_STARTUP:  // unsigned long long
-        case XN_MODULE_PROPERTY_LEAN_INIT:                // unsigned long long
-        case XN_MODULE_PROPERTY_SERIAL_NUMBER:            // unsigned long long
-        case XN_MODULE_PROPERTY_VERSION:                  // XnVersions
-        // xn commands
-        case XN_MODULE_PROPERTY_FIRMWARE_PARAM:           // XnInnerParam
-        case XN_MODULE_PROPERTY_RESET:                    // unsigned long long
-        case XN_MODULE_PROPERTY_IMAGE_CONTROL:            // XnControlProcessingData
-        case XN_MODULE_PROPERTY_DEPTH_CONTROL:            // XnControlProcessingData
-        case XN_MODULE_PROPERTY_AHB:                      // XnAHBData
-        case XN_MODULE_PROPERTY_LED_STATE:                // XnLedState
           return ONI_STATUS_NOT_SUPPORTED;
   
         case ONI_DEVICE_PROPERTY_IMAGE_REGISTRATION:      // OniImageRegistrationMode
@@ -159,6 +134,16 @@ namespace FreenectDriver {
             return ONI_STATUS_ERROR;
           }
           return depth->setImageRegistrationMode(*(static_cast<const OniImageRegistrationMode*>(data)));
+
+        case KINECT_PROPERTY_LED_STATUS:
+            try {
+                Freenect::FreenectDevice::setLed(*(static_cast<const freenect_led_options*>(data)));
+            }
+            catch (...)
+            {
+                return ONI_STATUS_ERROR;
+            }
+            return ONI_STATUS_OK;
       }
     }
     
