@@ -169,8 +169,6 @@ namespace FreenectDriver {
   
   public:
     Driver(OniDriverServices* pDriverServices) : DriverBase(pDriverServices) {
-      //freenect_set_log_level(m_ctx, FREENECT_LOG_NOTICE);
-      freenect_select_subdevices(m_ctx, FREENECT_DEVICE_CAMERA); // OpenNI2 doesn't use MOTOR
     }
     ~Driver() { shutdown(); }
   
