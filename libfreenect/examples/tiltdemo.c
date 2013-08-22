@@ -27,6 +27,7 @@
  */
 
 #include "libfreenect.h"
+#include "libfreenect_sync.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -79,68 +80,40 @@
 
    So, this should serve as the reference example for working with the motor,
    accelerometers, and LEDs.   */
+
+void no_kinect_quit(void)
+{
+	printf("Error: Kinect not connected?\n");
+	exit(1);
+}
+
 int main(int argc, char *argv[])
 {
-    srand(time(0));
+	srand(time(0));
 
-    freenect_context* f_ctx;
-    freenect_device* f_dev;
+	while (1) {
+		// Pick a random tilt and a random LED state
+		freenect_led_options led = (freenect_led_options) (rand() % 6); // explicit cast
+		int tilt = (rand() % 30)-15;
+		freenect_raw_tilt_state *state = 0;
+		double dx, dy, dz;
 
-    if (freenect_init(&f_ctx, NULL) < 0) {
-        printf("freenect_init() failed\n");
-        return 1;
-    }
+		// Set the LEDs to one of the possible states
+		if (freenect_sync_set_led(led, 0)) no_kinect_quit();
 
-    freenect_set_log_level(f_ctx, FREENECT_LOG_DEBUG);
-    freenect_select_subdevices(f_ctx, (freenect_device_flags) FREENECT_DEVICE_MOTOR);
+		// Set the tilt angle (in degrees)
+		if (freenect_sync_set_tilt_degs(tilt, 0)) no_kinect_quit();
 
-    int nr_devices = freenect_num_devices (f_ctx);
-    printf ("Number of devices found: %d\n", nr_devices);
+		// Get the raw accelerometer values and tilt data
+		if (freenect_sync_get_tilt_state(&state, 0)) no_kinect_quit();
 
-    int user_device_number = 0;
-    if (argc > 1)
-        user_device_number = atoi(argv[1]);
+		// Get the processed accelerometer values (calibrated to gravity)
+		freenect_get_mks_accel(state, &dx, &dy, &dz);
 
-    if (nr_devices < 1) {
-        freenect_shutdown(f_ctx);
-        return 1;
-    }
+		printf("led[%d] tilt[%d] accel[%lf,%lf,%lf]\n", led, tilt, dx,dy,dz);
 
-    if (freenect_open_device(f_ctx, &f_dev, user_device_number) < 0) {
-        printf("Could not open device\n");
-        freenect_shutdown(f_ctx);
-        return 1;
-    }
-
-
-    int i = 0;
-    for (i = 0; i < 10; ++i) {
-        // Pick a random tilt and a random LED state
-        freenect_led_options led = (freenect_led_options) (rand() % 6); // explicit cast
-        int tilt = (rand() % 30)-15;
-        freenect_raw_tilt_state *state = 0;
-        double dx, dy, dz;
-
-        // Set the LEDs to one of the possible states
-        freenect_set_led(f_dev, led);
-
-        // Set the tilt angle (in degrees)
-        freenect_set_tilt_degs(f_dev, tilt);
-
-        // Get the raw accelerometer values and tilt data
-        state = freenect_get_tilt_state(f_dev);
-
-        // Get the processed accelerometer values (calibrated to gravity)
-        freenect_get_mks_accel(state, &dx, &dy, &dz);
-
-        printf("led[%d] tilt[%d] accel[%lf,%lf,%lf]\n", led, tilt, dx,dy,dz);
-
-        sleep(3);
-    }
-
-    freenect_shutdown(f_ctx);
-
-    return 0;
+		sleep(3);
+	}
 }
 
 

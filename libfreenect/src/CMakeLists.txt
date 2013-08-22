@@ -2,6 +2,7 @@
 set(HEADERS ../include/libfreenect-registration.h
             ../include/libfreenect.h
             cameras.h
+            flags.h
             freenect_internal.h
             registration.h
             usb_libusb10.h
@@ -11,6 +12,7 @@ set(HEADERS ../include/libfreenect-registration.h
 # List the source files
 set(SRCS cameras.c
          core.c
+         flags.c
          registration.c
          tilt.c
          usb_libusb10.c

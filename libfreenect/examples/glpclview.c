@@ -27,12 +27,9 @@
  */
 
 #include "libfreenect.h"
+#include "libfreenect_sync.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <memory.h>
-#include <assert.h>
-
-#include <pthread.h>
 
 #if defined(__APPLE__)
 #include <GLUT/glut.h>
@@ -46,9 +43,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-freenect_context* f_ctx;
-freenect_device* f_dev;
-
 int window;
 GLuint gl_rgb_tex;
 int mx=-1,my=-1;        // Prevous mouse coordinates
@@ -56,32 +50,17 @@ int rotangles[2] = {0}; // Panning angles
 float zoom = 1;         // zoom factor
 int color = 1;          // Use the RGB texture or just draw it as color
 
-
-pthread_t freenect_thread;
-volatile int die = 0;
-pthread_mutex_t gl_backbuf_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t gl_frame_cond = PTHREAD_COND_INITIALIZER;
-int got_rgb = 0;
-int got_depth = 0;
-
-// back: owned by libfreenect (implicit for depth)
-// mid: owned by callbacks, "latest frame ready"
-// front: owned by GL, "currently being drawn"
-uint16_t *depth_mid, *depth_front;
-uint8_t *rgb_back, *rgb_mid, *rgb_front;
-
-
 // Do the projection from u,v,depth to X,Y,Z directly in an opengl matrix
 // These numbers come from a combination of the ros kinect_node wiki, and
 // nicolas burrus' posts.
 void LoadVertexMatrix()
 {
-    const float fx = 594.21f;
-    const float fy = 591.04f;
-    const float a = -0.0030711f;
-    const float b = 3.3309495f;
-    const float cx = 339.5f;
-    const float cy = 242.7f;
+    float fx = 594.21f;
+    float fy = 591.04f;
+    float a = -0.0030711f;
+    float b = 3.3309495f;
+    float cx = 339.5f;
+    float cy = 242.7f;
     GLfloat mat[16] = {
         1/fx,     0,  0, 0,
         0,    -1/fy,  0, 0,
@@ -127,92 +106,21 @@ void mousePress(int button, int state, int x, int y)
     }
 }
 
-void depth_cb(freenect_device *dev, void *v_depth, uint32_t timestamp)
+void no_kinect_quit(void)
 {
-    pthread_mutex_lock(&gl_backbuf_mutex);
-    memcpy((void*) depth_mid, v_depth, 640 * 480 * sizeof(uint16_t));
-    got_depth++;
-    pthread_cond_signal(&gl_frame_cond);
-    pthread_mutex_unlock(&gl_backbuf_mutex);
+    printf("Error: Kinect not connected?\n");
+    exit(1);
 }
-
-void rgb_cb(freenect_device *dev, void *rgb, uint32_t timestamp)
-{
-    pthread_mutex_lock(&gl_backbuf_mutex);
-
-    // swap buffers
-    assert (rgb_back == rgb);
-    rgb_back = rgb_mid;
-    freenect_set_video_buffer(dev, rgb_back);
-    rgb_mid = (uint8_t*)rgb;
-
-    got_rgb++;
-    pthread_cond_signal(&gl_frame_cond);
-    pthread_mutex_unlock(&gl_backbuf_mutex);
-}
-
-void *freenect_threadfunc(void *arg)
-{
-    int accelCount = 0;
-
-    freenect_set_led(f_dev, LED_GREEN);
-    freenect_set_depth_callback(f_dev, depth_cb);
-    freenect_set_video_callback(f_dev, rgb_cb);
-    freenect_set_video_mode(f_dev, freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB));
-    freenect_set_depth_mode(f_dev, freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_11BIT));
-    freenect_set_video_buffer(f_dev, rgb_back);
-
-    freenect_start_depth(f_dev);
-    freenect_start_video(f_dev);
-
-    while (!die && freenect_process_events(f_ctx) >= 0)
-    {
-    }
-
-    freenect_set_led(f_dev, LED_RED);
-
-    printf("\nshutting down streams...\n");
-
-    freenect_stop_depth(f_dev);
-    freenect_stop_video(f_dev);
-
-    freenect_close_device(f_dev);
-    freenect_shutdown(f_ctx);
-
-    printf("-- done!\n");
-    return NULL;
-}
-
 
 void DrawGLScene()
 {
+    short *depth = 0;
+    char *rgb = 0;
     uint32_t ts;
-
-    pthread_mutex_lock(&gl_backbuf_mutex);
-
-    if (!got_depth || !got_rgb)
-    {
-        pthread_mutex_unlock(&gl_backbuf_mutex);
-        return;
-    }
-
-    if (got_depth) {
-        uint16_t *tmp;
-        tmp = depth_front;
-        depth_front = depth_mid;
-        depth_mid = tmp;
-        got_depth = 0;
-    }
-    if (got_rgb) {
-        uint8_t *tmp;
-        tmp = rgb_front;
-        rgb_front = rgb_mid;
-        rgb_mid = tmp;
-        got_rgb = 0;
-    }
-
-    pthread_mutex_unlock(&gl_backbuf_mutex);
-
+    if (freenect_sync_get_depth((void**)&depth, &ts, 0, FREENECT_DEPTH_11BIT) < 0)
+	no_kinect_quit();
+    if (freenect_sync_get_video((void**)&rgb, &ts, 0, FREENECT_VIDEO_RGB) < 0)
+	no_kinect_quit();
 
     static unsigned int indices[480][640];
     static short xyz[480][640][3];
@@ -221,7 +129,7 @@ void DrawGLScene()
         for (j = 0; j < 640; j++) {
             xyz[i][j][0] = j;
             xyz[i][j][1] = i;
-            xyz[i][j][2] = depth_front[i*640+j];
+            xyz[i][j][2] = depth[i*640+j];
             indices[i][j] = i*640+j;
         }
     }
@@ -256,7 +164,7 @@ void DrawGLScene()
     if (color)
         glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, gl_rgb_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, 3, 640, 480, 0, GL_RGB, GL_UNSIGNED_BYTE, rgb_front);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, 640, 480, 0, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
     glPointSize(2.0f);
     glDrawElements(GL_POINTS, 640*480, GL_UNSIGNED_INT, indices);
@@ -268,16 +176,9 @@ void DrawGLScene()
 void keyPressed(unsigned char key, int x, int y)
 {
     if (key == 27) {
-		die = 1;
-		pthread_join(freenect_thread, NULL);
-		glutDestroyWindow(window);
-		free(depth_mid);
-		free(depth_front);
-		free(rgb_back);
-		free(rgb_mid);
-		free(rgb_front);
-		// Not pthread_exit because OSX leaves a thread lying around and doesn't exit
-		exit(0);
+        freenect_sync_stop();
+        glutDestroyWindow(window);
+        exit(0);
     }
     if (key == 'w')
         zoom *= 1.1f;
@@ -309,39 +210,6 @@ void InitGL(int Width, int Height)
 
 int main(int argc, char **argv)
 {
-    if (freenect_init(&f_ctx, NULL) < 0) {
-        printf("freenect_init() failed\n");
-        return 1;
-    }
-
-    freenect_set_log_level(f_ctx, FREENECT_LOG_DEBUG);
-    freenect_select_subdevices(f_ctx, (freenect_device_flags) FREENECT_DEVICE_CAMERA);
-
-    int nr_devices = freenect_num_devices (f_ctx);
-    printf ("Number of devices found: %d\n", nr_devices);
-
-    int user_device_number = 0;
-    if (argc > 1)
-        user_device_number = atoi(argv[1]);
-
-    if (nr_devices < 1) {
-        freenect_shutdown(f_ctx);
-        return 1;
-    }
-
-    if (freenect_open_device(f_ctx, &f_dev, user_device_number) < 0) {
-        printf("Could not open device\n");
-        freenect_shutdown(f_ctx);
-        return 1;
-    }
-
-    depth_mid = (uint16_t*)malloc(640*480*3);
-    depth_front = (uint16_t*)malloc(640*480*3);
-    rgb_back = (uint8_t*)malloc(640*480*3);
-    rgb_mid = (uint8_t*)malloc(640*480*3);
-    rgb_front = (uint8_t*)malloc(640*480*3);
-
-
     glutInit(&argc, argv);
 
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH);
