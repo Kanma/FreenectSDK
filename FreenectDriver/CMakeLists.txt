@@ -23,8 +23,30 @@ xmake_import_search_paths(LIBFREENECT)
 xmake_import_search_paths(OPENNI2)
 
 
-# Declaration of the library
-xmake_create_dynamic_library(FREENECTDRIVER FreenectDriver "1.0.0" "1.0.0" ${HEADERS}  ${SRCS})
+# Declaration of the library (Note: Can't use xmake_create_dynamic_library for that,
+# because it creates both the library and a symbolic link to it, which OpenNI considers
+# as two different drivers to two different devices...)
+xmake_set(XMAKE_FREENECTDRIVER_TARGET                        "FreenectDriver")
+xmake_set(XMAKE_FREENECTDRIVER_INCLUDE_PATHS                 "")
+xmake_set(XMAKE_FREENECTDRIVER_LINK_PATHS                    "")
+xmake_set(XMAKE_FREENECTDRIVER_COMPILE_DEFINITIONS           "")
+xmake_set(XMAKE_FREENECTDRIVER_LINK_FLAGS                    "")
+xmake_set(XMAKE_FREENECTDRIVER_LINK_TARGETS                  "FreenectDriver")
+xmake_set(XMAKE_FREENECTDRIVER_DISABLED_VS_WARNINGS          "")
+xmake_set(XMAKE_FREENECTDRIVER_EXECUTABLE                    NO)
+xmake_set(XMAKE_FREENECTDRIVER_STATIC_LIBRARY                NO)
+xmake_set(XMAKE_FREENECTDRIVER_DYNAMIC_LIBRARY               YES)
+xmake_set(XMAKE_FREENECTDRIVER_FRAMEWORK                     NO)
+
+add_library(FreenectDriver SHARED ${HEADERS} ${SRCS})
+
+# Set the INSTALL_PATH so that the dynamic library can be local
+if (NOT WIN32)
+    set_target_properties(FreenectDriver PROPERTIES BUILD_WITH_INSTALL_RPATH ON
+                                                    INSTALL_NAME_DIR "@rpath"
+    )
+endif()
+
 
 xmake_project_link(FREENECTDRIVER LIBFREENECT OPENNI2)
 
